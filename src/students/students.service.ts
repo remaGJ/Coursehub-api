@@ -1,3 +1,5 @@
+// ingeniero si encuentra esto este comentario es solo para dejar el commit en español pq me estaba ayudando con gpt para hacer lo de la rama en el github 
+// y el commit lo dejo en ingles y yo lo quiero en español nada mas eso :v
 import {
     ConflictException,
     Injectable,
