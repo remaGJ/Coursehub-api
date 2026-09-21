@@ -15,8 +15,9 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    
+    it('should return the welcome message', () => {
+      expect(appController.getHello()).toBe('Coursehub API esta en linea chavalon :D');
     });
   });
 });
