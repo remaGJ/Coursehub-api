@@ -4,29 +4,28 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { StudentsService } from '../students/students.service.js';
-import { CoursesService } from '../courses/courses.service.js';
-import { CreateEnrollmentDto } from './dto/create-enrollments.dto.js';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-type Enrollment = {
-  id: number;
-  studentId: number;
-  courseId: number;
-};
+import { CreateEnrollmentDto } from './dto/create-enrollments.dto.js';
+import { Enrollment } from './entities/enrollment.entity.js';
+import { Student } from '../students/entities/student.entity.js';
+import { Course } from '../courses/entities/course.entity.js';
 
 @Injectable()
 export class EnrollmentsService {
-  private readonly enrollments: Enrollment[] = [];
-  private nextId = 1;
-
   constructor(
-    private readonly studentsService: StudentsService,
-    private readonly coursesService: CoursesService,
-  ) {}
+    @InjectRepository(Enrollment)
+    private readonly enrollmentsRepository: Repository<Enrollment>,
+    @InjectRepository(Student)
+    private readonly studentsRepository: Repository<Student>,
+    @InjectRepository(Course)
+    private readonly coursesRepository: Repository<Course>,
+  ) { }
 
-  async create(dto: CreateEnrollmentDto): Promise<Enrollment> { // CAMBIO: async
-    const student = this.studentsService.findOne(dto.studentId); // 404 si no existe
-    await this.coursesService.findOne(String(dto.courseId)); // CAMBIO: await + String()
+  async create(dto: CreateEnrollmentDto): Promise<Enrollment> {
+    const student = await this.ensureStudentExists(dto.studentId);
+    const course = await this.ensureCourseExists(dto.courseId);
 
     if (!student.isActive) {
       throw new UnprocessableEntityException(
@@ -34,52 +33,62 @@ export class EnrollmentsService {
       );
     }
 
-    const duplicated = this.enrollments.some(
-      (m) => m.studentId === dto.studentId && m.courseId === dto.courseId,
-    );
+    const duplicated = await this.enrollmentsRepository.findOne({
+      where: { student: { id: student.id }, course: { id: course.id } },
+    });
     if (duplicated) {
       throw new ConflictException(
         'El estudiante ya está matriculado en este curso',
       );
     }
 
-    const enrollment: Enrollment = {
-      id: this.nextId++,
-      studentId: dto.studentId,
-      courseId: dto.courseId,
-    };
-    this.enrollments.push(enrollment);
-    return enrollment;
-  }
-
-  findAll(filters: { studentId?: number; courseId?: number } = {}): Enrollment[] {
-    return this.enrollments.filter(
-      (e) =>
-        (filters.studentId === undefined || e.studentId === filters.studentId) &&
-        (filters.courseId === undefined || e.courseId === filters.courseId),
+    return this.enrollmentsRepository.save(
+      this.enrollmentsRepository.create({ student, course }),
     );
   }
 
-  findByStudent(studentId: number): Enrollment[] {
-    this.studentsService.findOne(studentId); // 404 si no existe
-    return this.findAll({ studentId });
+  findAll(studentId?: number, courseId?: number) {
+    return this.enrollmentsRepository.find({
+      where: {
+        ...(studentId ? { student: { id: studentId } } : {}),
+        ...(courseId ? { course: { id: courseId } } : {}),
+      },
+      relations: { student: true, course: true },
+      order: { id: 'ASC' },
+    });
   }
 
-  async findByCourse(courseId: number): Promise<Enrollment[]> { // CAMBIO: async
-    await this.ensureCourseExists(courseId); // CAMBIO: await
-    return this.findAll({ courseId });
+  async findByStudent(studentId: number) {
+    await this.ensureStudentExists(studentId); // 404 si no existe
+    return this.findAll(studentId);
   }
 
-  remove(id: number): void {
-    const index = this.enrollments.findIndex((e) => e.id === id);
-    if (index === -1) {
+  async findByCourse(courseId: number) {
+    await this.ensureCourseExists(courseId); // 404 si no existe
+    return this.findAll(undefined, courseId);
+  }
+
+  async remove(id: number): Promise<void> {
+    const enrollment = await this.enrollmentsRepository.findOneBy({ id });
+    if (!enrollment) {
       throw new NotFoundException(`Matrícula ${id} no encontrada`);
     }
-    this.enrollments.splice(index, 1);
+    await this.enrollmentsRepository.remove(enrollment);
   }
 
-  private async ensureCourseExists(courseId: number): Promise<void> { // CAMBIO: async
-    // findOne ya lanza NotFoundException si el curso no existe
-    await this.coursesService.findOne(String(courseId)); // CAMBIO: sin el if, con await + String()
+  private async ensureStudentExists(id: number): Promise<Student> {
+    const student = await this.studentsRepository.findOneBy({ id });
+    if (!student) {
+      throw new NotFoundException(`Estudiante ${id} no encontrado`);
+    }
+    return student;
+  }
+
+  private async ensureCourseExists(id: number): Promise<Course> {
+    const course = await this.coursesRepository.findOneBy({ id });
+    if (!course) {
+      throw new NotFoundException(`Curso ${id} no encontrado`);
+    }
+    return course;
   }
 }

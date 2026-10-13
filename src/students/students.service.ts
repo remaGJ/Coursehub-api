@@ -1,147 +1,71 @@
-// ingeniero si encuentra esto este comentario es solo para dejar el commit en español pq me estaba ayudando con gpt para hacer lo de la rama en el github 
-// y el commit lo dejo en ingles y yo lo quiero en español nada mas eso :v
 import {
     ConflictException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
-
-type Student = {
-    id: number;
-    Name: string;
-    email: string;
-    age: number;
-    career: string;
-    semester: number;
-    isActive: boolean;
-};
+import { Student } from './entities/student.entity.js';
 
 @Injectable()
 export class StudentsService {
-    private readonly students: Student[] = [
-        {
-            id: 1,
-            Name: 'Carlos Eduardo Macias Rodriguez',
-            email: 'carlos.macias@example.com',
-            age: 21,
-            career: 'Agropecuaria',
-            semester: 5,
-            isActive: true,
-        },
-        {
-            id: 2,
-            Name: 'José Antonio Zambrano Bazurto',
-            email: 'jose.zb@example.com',
-            age: 19,
-            career: 'Ing Alimentos',
-            semester: 2,
-            isActive: false,
-        },
-        {
-            id: 3,
-            Name: 'Lucrecia Antonella Mero Cedeño',
-            email: 'luluu.m@example.es',
-            age: 18,
-            career: 'Gastronomia',
-            semester: 1,
-            isActive: true,
-        },
-    ];
+    constructor(
+        @InjectRepository(Student)
+        private readonly studentRepository: Repository<Student>,
+    ) { }
 
-    findAll(
+    async findAll(
         career?: string,
         semester?: string,
         isActive?: string,
-    ): Student[] {
-        if (!career && !semester && isActive === undefined) {
-            return this.students;
-        }
+    ): Promise<Student[]> {
+        const where: FindOptionsWhere<Student> = {};
 
-        return this.students.filter(
-            (student) =>
-                (!career || student.career === career) &&
-                (!semester ||
-                    student.semester === Number(semester)) &&
-                (isActive === undefined ||
-                    student.isActive === (isActive === 'true')),
-        );
+        if (career) where.career = career;
+        if (semester) where.semester = Number(semester);
+        if (isActive !== undefined) where.isActive = isActive === 'true';
+
+        return this.studentRepository.find({ where });
     }
 
-    findOne(id: number): Student {
-        const student = this.students.find(
-            (student) => student.id === id,
-        );
+    async findOne(id: number): Promise<Student> {
+        const student = await this.studentRepository.findOneBy({ id });
 
         if (!student) {
-            throw new NotFoundException(
-                'Estudiante no encontrado',
-            );
+            throw new NotFoundException('Estudiante no encontrado');
         }
 
         return student;
     }
 
-    create(input: CreateStudentDto): Student {
-        const emailExists = this.students.some(
-            (student) => student.email === input.email,
-        );
+    async create(input: CreateStudentDto): Promise<Student> {
+        await this.ensureEmailAvailable(input.email);
 
-        if (emailExists) {
-            throw new ConflictException(
-                'El correo electrónico ya está registrado',
-            );
-        }
-
-        const student: Student = {
-            id:
-                Math.max(
-                    0,
-                    ...this.students.map((item) => item.id),
-                ) + 1,
-
-            Name: input.Name,
-            email: input.email,
-            age: input.age,
-            career: input.career,
-            semester: input.semester,
+        const student = this.studentRepository.create({
+            ...input,
             isActive: input.isActive ?? true,
-        };
+        });
 
-        this.students.push(student);
-
-        return student;
+        return this.studentRepository.save(student);
     }
 
-    update(
-        id: number,
-        input: UpdateStudentDto,
-    ): Student {
-        const student = this.findOne(id);
+    async update(id: number, input: UpdateStudentDto): Promise<Student> {
+        const student = await this.findOne(id);
 
         if (input.email) {
-            const emailExists = this.students.some(
-                (item) =>
-                    item.email === input.email &&
-                    item.id !== id,
-            );
-
-            if (emailExists) {
-                throw new ConflictException(
-                    'El correo electrónico ya está registrado por otro estudiante',
-                );
-            }
+            await this.ensureEmailAvailable(input.email, id);
         }
 
         Object.assign(student, input);
 
-        return student;
+        return this.studentRepository.save(student);
     }
 
-    remove(id: number): Student {
-        const student = this.findOne(id);
+    async remove(id: number): Promise<Student> {
+        const student = await this.findOne(id);
 
         if (!student.isActive) {
             throw new ConflictException(
@@ -149,23 +73,24 @@ export class StudentsService {
             );
         }
 
-        const index = this.students.findIndex(
-            (student) => student.id === id,
-        );
-
-        const [removedStudent] = this.students.splice(
-            index,
-            1,
-        );
-
-        return removedStudent;
+        return this.studentRepository.remove(student);
     }
 
-    toggleStatus(id: number): Student {
-        const student = this.findOne(id);
+    async toggleStatus(id: number): Promise<Student> {
+        const student = await this.findOne(id);
 
         student.isActive = !student.isActive;
 
-        return student;
+        return this.studentRepository.save(student);
+    }
+
+    private async ensureEmailAvailable(email: string, currentId?: number) {
+        const existing = await this.studentRepository.findOneBy({ email });
+
+        if (existing && existing.id !== currentId) {
+            throw new ConflictException(
+                'El correo electrónico ya está registrado',
+            );
+        }
     }
 }

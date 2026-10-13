@@ -38,4 +38,4 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   controllers: [AppController, WelcomeController],
   providers: [AppService, WelcomeService],
 })
-export class AppModule {}
+export class AppModule { }
