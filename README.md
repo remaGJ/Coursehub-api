@@ -208,5 +208,29 @@ Si se repite:
 | GET / POST | `/students` | Listar (filtros `career`, `semester`, `isActive`) / crear |
 | GET / PATCH / DELETE | `/students/:id` | Consultar / actualizar / eliminar |
 | PATCH | `/students/:id/status` | Alternar activo/inactivo |
-| GET / POST | `/courses` | Listar (filtro `level`) / crear |
+| GET / POST | `/courses` | Listar cursos paginados (filtros `level`, `page`, `limit`, `sortBy`, `order`) / crear |
 | GET / PATCH / DELETE | `/courses/:id` | Consultar / actualizar / eliminar |
+
+### Listar cursos
+
+`GET /courses` acepta `level` como filtro exacto, `page` (por defecto `1`),
+`limit` (por defecto `10`, máximo `50`), `sortBy` (`id`, `title` o `level`;
+por defecto `id`) y `order` (`ASC` o `DESC`; por defecto `ASC`).
+Los valores inválidos, incluidos `page=0`, `limit=200`, `sortBy=createdAt`
+y `order=sideways`, responden `400 Bad Request`.
+
+```http
+GET /courses?level=beginner&page=2&limit=5&sortBy=title&order=ASC
+```
+
+```json
+{
+  "items": [],
+  "meta": {
+    "total": 0,
+    "page": 2,
+    "limit": 5,
+    "totalPages": 0
+  }
+}
+```
