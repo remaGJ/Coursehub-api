@@ -4,13 +4,13 @@ import { Repository } from 'typeorm';
 import { CreateCourseDto } from './dto/create-course.dto.js';
 import { CoursesQueryDto } from './dto/courses-query.dto.js';
 import { UpdateCourseDto } from './dto/update-course.dto.js';
-import { Course_ } from './entities/course.entity.js';
+import { Course } from './entities/course.entity.js';
 
 @Injectable()
 export class CoursesService {
   constructor(
-    @InjectRepository(Course_)
-    private readonly coursesRepository: Repository<Course_>,
+    @InjectRepository(Course)
+    private readonly coursesRepository: Repository<Course>,
   ) {} // 1
 
   async findAll(query: CoursesQueryDto) {
@@ -33,7 +33,7 @@ export class CoursesService {
     };
   }
 
-  async findOne(id: string): Promise<Course_> {
+  async findOne(id: string): Promise<Course> {
     const course = await this.coursesRepository.findOneBy({ id: Number(id) }); // 4
     if (!course) throw new NotFoundException(`Course ${id} not found`); // 5
     return course;

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CoursesService } from './courses.service.js';
 import { CoursesQueryDto } from './dto/courses-query.dto.js';
-import { Course_ } from './entities/course.entity.js';
+import { Course } from './entities/course.entity.js';
 
 describe('CoursesService', () => {
   let service: CoursesService;
@@ -13,7 +13,7 @@ describe('CoursesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CoursesService,
-        { provide: getRepositoryToken(Course_), useValue: coursesRepository },
+        { provide: getRepositoryToken(Course), useValue: coursesRepository },
       ],
     }).compile();
 

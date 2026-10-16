@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CreateEnrollmentDto } from './dto/create-enrollments.dto.js';
+import { EnrollmentsQueryDto } from './dto/enrollments-query.dto.js';
 import { Enrollment } from './entities/enrollment.entity.js';
 import { Student } from '../students/entities/student.entity.js';
 import { Course } from '../courses/entities/course.entity.js';
@@ -47,25 +48,52 @@ export class EnrollmentsService {
     );
   }
 
-  findAll(studentId?: number, courseId?: number) {
-    return this.enrollmentsRepository.find({
-      where: {
-        ...(studentId ? { student: { id: studentId } } : {}),
-        ...(courseId ? { course: { id: courseId } } : {}),
-      },
-      relations: { student: true, course: true },
-      order: { id: 'ASC' },
-    });
+  async findAll(query: EnrollmentsQueryDto) {
+    const { search, studentId, courseId, activeOnly, page, limit } = query;
+    const queryBuilder = this.createQueryBuilder();
+
+    if (search?.trim()) {
+      queryBuilder.andWhere(
+        '(student.name ILIKE :search OR course.title ILIKE :search)',
+        { search: `%${search.trim()}%` },
+      );
+    }
+    if (studentId !== undefined) {
+      queryBuilder.andWhere('student.id = :studentId', { studentId });
+    }
+    if (courseId !== undefined) {
+      queryBuilder.andWhere('course.id = :courseId', { courseId });
+    }
+    if (activeOnly === 'true') {
+      queryBuilder.andWhere('student.isActive = :active', { active: true });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('enrollment.id', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      meta: { total, page, limit },
+    };
   }
 
   async findByStudent(studentId: number) {
     await this.ensureStudentExists(studentId); // 404 si no existe
-    return this.findAll(studentId);
+    return this.createQueryBuilder()
+      .andWhere('student.id = :studentId', { studentId })
+      .orderBy('enrollment.id', 'ASC')
+      .getMany();
   }
 
   async findByCourse(courseId: number) {
     await this.ensureCourseExists(courseId); // 404 si no existe
-    return this.findAll(undefined, courseId);
+    return this.createQueryBuilder()
+      .andWhere('course.id = :courseId', { courseId })
+      .orderBy('enrollment.id', 'ASC')
+      .getMany();
   }
 
   async remove(id: number): Promise<void> {
@@ -90,5 +118,12 @@ export class EnrollmentsService {
       throw new NotFoundException(`Curso ${id} no encontrado`);
     }
     return course;
+  }
+
+  private createQueryBuilder() {
+    return this.enrollmentsRepository
+      .createQueryBuilder('enrollment')
+      .leftJoinAndSelect('enrollment.student', 'student')
+      .leftJoinAndSelect('enrollment.course', 'course');
   }
 }

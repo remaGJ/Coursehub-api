@@ -137,23 +137,30 @@ POST /enrollments
 
 ### Listar con filtros
 
+`GET /enrollments` acepta los filtros opcionales `search` (coincidencia parcial
+sin distinguir mayúsculas en el nombre del estudiante o título del curso),
+`studentId`, `courseId` y `activeOnly=true`, además de `page` (por defecto `1`)
+y `limit` (por defecto `10`, máximo `50`). La respuesta incluye las entidades
+relacionadas `student` y `course`, y metadatos de paginación.
+
 ```http
 GET /enrollments
 ```
 ```json
-// 200 OK
-[
-  { "id": 1, "studentId": 1, "courseId": 1 },
-  { "id": 2, "studentId": 3, "courseId": 2 }
-]
+{
+  "items": [
+    {
+      "id": 1,
+      "student": { "id": 1, "name": "Carlos" },
+      "course": { "id": 1, "title": "NestJS Fundamentals" }
+    }
+  ],
+  "meta": { "total": 1, "page": 1, "limit": 10 }
+}
 ```
 
 ```http
-GET /enrollments?studentId=3&courseId=2
-```
-```json
-// 200 OK
-[ { "id": 2, "studentId": 3, "courseId": 2 } ]
+GET /enrollments?search=nest&activeOnly=true&page=1&limit=5
 ```
 
 ### Matrículas por estudiante y por curso
