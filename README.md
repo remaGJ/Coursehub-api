@@ -11,6 +11,18 @@ npm run start:dev   # http://localhost:3000
 npm test            # pruebas unitarias
 ```
 
+## Configuración del entorno
+
+`ConfigModule` valida las variables antes de inicializar la conexión a PostgreSQL.
+Consulta `.env.example` para los nombres y valores de ejemplo:
+
+- `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USER` y `DATABASE_PASSWORD` son
+  obligatorias.
+- `DATABASE_PORT` usa `5432` por defecto y `PORT` usa `3000`.
+- `NODE_ENV` acepta `development`, `test` o `production` y usa `development`
+  por defecto. Solo en `development` se permite que `DATABASE_PASSWORD` esté
+  vacío; en los demás entornos debe contener al menos un carácter.
+
 ## Estructura de módulos
 
 ```
