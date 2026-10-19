@@ -11,6 +11,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { environmentValidationSchema } from './config/environment.validation.js';
 import { createTypeOrmOptions } from './config/typeorm-options.js';
+import { UsersModule } from './users/users.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -33,6 +35,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     CoursesModule,
     StudentsModule,
     EnrollmentsModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController, WelcomeController],
   providers: [AppService, WelcomeService],
