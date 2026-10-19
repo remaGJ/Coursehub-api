@@ -33,6 +33,28 @@ describe('environmentValidationSchema', () => {
     },
   );
 
+  it.each(['development', 'test', 'production'])(
+    'accepts the %s environment',
+    (NODE_ENV) => {
+      const { error } = environmentValidationSchema.validate({
+        ...requiredDatabaseConfig,
+        DATABASE_PASSWORD: 'local-password',
+        NODE_ENV,
+      });
+
+      expect(error).toBeUndefined();
+    },
+  );
+
+  it('rejects unsupported environments', () => {
+    const { error } = environmentValidationSchema.validate({
+      ...requiredDatabaseConfig,
+      NODE_ENV: 'staging',
+    });
+
+    expect(error).toBeDefined();
+  });
+
   it('rejects invalid ports', () => {
     const { error } = environmentValidationSchema.validate({
       ...requiredDatabaseConfig,
