@@ -10,6 +10,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { environmentValidationSchema } from './config/environment.validation.js';
+import { createTypeOrmOptions } from './config/typeorm-options.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -22,16 +23,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.getOrThrow<string>('DATABASE_HOST'),
-        port: config.getOrThrow<number>('DATABASE_PORT'),
-        username: config.getOrThrow<string>('DATABASE_USER'),
-        password: config.getOrThrow<string>('DATABASE_PASSWORD'),
-        database: config.getOrThrow<string>('DATABASE_NAME'),
-        autoLoadEntities: true,
-        synchronize: config.getOrThrow<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: createTypeOrmOptions,
     }),
     ObserveModule.forRoot({
       appKey: 'YOUR_APP_KEY',
