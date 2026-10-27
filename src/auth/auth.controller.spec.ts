@@ -50,9 +50,12 @@ describe('AuthController', () => {
   it('delegates to authService.login and returns authenticated user data', async () => {
     const dto = { email: 'user@example.com', password: 'password123' };
     const expectedResponse = {
-      id: 1,
-      email: 'user@example.com',
-      createdAt: new Date(),
+      accessToken: 'signed-jwt-token',
+      user: {
+        id: 1,
+        email: 'user@example.com',
+        createdAt: new Date(),
+      },
     };
     authService.login.mockResolvedValue(expectedResponse);
 

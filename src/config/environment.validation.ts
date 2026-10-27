@@ -14,4 +14,6 @@ export const environmentValidationSchema = Joi.object({
     then: Joi.string().allow('').required(),
     otherwise: Joi.string().min(1).required(),
   }),
+  JWT_SECRET: Joi.string().min(32).required(),
+  JWT_EXPIRES_IN: Joi.string().default('15m'),
 });

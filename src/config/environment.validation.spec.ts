@@ -5,12 +5,14 @@ const requiredDatabaseConfig = {
   DATABASE_NAME: 'coursehub',
   DATABASE_USER: 'postgres',
   DATABASE_PASSWORD: '',
+  JWT_SECRET: 'a'.repeat(32),
 };
 
 describe('environmentValidationSchema', () => {
   it('applies defaults and allows an empty password in development', () => {
-    const { error, value } =
-      environmentValidationSchema.validate(requiredDatabaseConfig);
+    const { error, value } = environmentValidationSchema.validate(
+      requiredDatabaseConfig,
+    );
 
     expect(error).toBeUndefined();
     expect(value).toMatchObject({
@@ -18,7 +20,28 @@ describe('environmentValidationSchema', () => {
       PORT: 3000,
       DATABASE_PORT: 5432,
       DATABASE_PASSWORD: '',
+      JWT_SECRET: 'a'.repeat(32),
+      JWT_EXPIRES_IN: '15m',
     });
+  });
+
+  it('rejects missing JWT_SECRET', () => {
+    const configWithoutSecret = { ...requiredDatabaseConfig };
+    delete (configWithoutSecret as any).JWT_SECRET;
+    const { error } = environmentValidationSchema.validate(configWithoutSecret);
+
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('"JWT_SECRET" is required');
+  });
+
+  it('rejects JWT_SECRET shorter than 32 characters', () => {
+    const { error } = environmentValidationSchema.validate({
+      ...requiredDatabaseConfig,
+      JWT_SECRET: 'too-short-secret',
+    });
+
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('at least 32 characters long');
   });
 
   it.each(['test', 'production'])(

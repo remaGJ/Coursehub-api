@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
 
@@ -9,12 +10,18 @@ describe('AuthService', () => {
     create: ReturnType<typeof vi.fn>;
     findByEmailWithPassword: ReturnType<typeof vi.fn>;
   };
+  let jwtService: {
+    signAsync: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     usersService = {
       findByEmail: vi.fn(),
       create: vi.fn(),
       findByEmailWithPassword: vi.fn(),
+    };
+    jwtService = {
+      signAsync: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -23,6 +30,10 @@ describe('AuthService', () => {
         {
           provide: UsersService,
           useValue: usersService,
+        },
+        {
+          provide: JwtService,
+          useValue: jwtService,
         },
       ],
     }).compile();
@@ -65,7 +76,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('authenticates user and returns sanitized profile when credentials are valid', async () => {
+    it('authenticates user and returns accessToken and user profile when credentials are valid', async () => {
       const now = new Date();
       const password = 'validPassword123';
       const hash = await (await import('bcrypt')).hash(password, 10);
@@ -76,6 +87,7 @@ describe('AuthService', () => {
         passwordHash: hash,
         createdAt: now,
       });
+      jwtService.signAsync.mockResolvedValue('signed-jwt-token');
 
       const result = await service.login({
         email: 'user@example.com',
@@ -85,12 +97,19 @@ describe('AuthService', () => {
       expect(usersService.findByEmailWithPassword).toHaveBeenCalledWith(
         'user@example.com',
       );
-      expect(result).toEqual({
-        id: 1,
+      expect(jwtService.signAsync).toHaveBeenCalledWith({
+        sub: 1,
         email: 'user@example.com',
-        createdAt: now,
       });
-      expect((result as any).passwordHash).toBeUndefined();
+      expect(result).toEqual({
+        accessToken: 'signed-jwt-token',
+        user: {
+          id: 1,
+          email: 'user@example.com',
+          createdAt: now,
+        },
+      });
+      expect((result.user as any).passwordHash).toBeUndefined();
     });
 
     it('throws UnauthorizedException when user does not exist', async () => {
