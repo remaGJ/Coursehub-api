@@ -254,24 +254,74 @@ GET /courses?level=beginner&page=2&limit=5&sortBy=title&order=ASC
 }
 ```
 
-## Autenticación y control de acceso
+## Autenticación y control de acceso (RBAC y Propiedad)
 
-El sistema utiliza autenticación basada en JSON Web Tokens (JWT) mediante Passport (`passport-jwt`).
+El sistema utiliza autenticación basada en JSON Web Tokens (JWT) mediante Passport (`passport-jwt`) junto con control de acceso basado en roles (`RolesGuard`) y verificación de propiedad en la capa de servicios.
 
-### Clasificación de rutas
+### Roles de usuario (`UserRole`)
 
-| Método | Ruta | Acceso | Descripción |
+Los usuarios cuentan con un rol cerrado modelado mediante la enumeración:
+* `admin`: Acceso completo de gestión.
+* `teacher`: Puede crear cursos y modificar los cursos de su autoría.
+* `student`: Rol por defecto de menor privilegio asignado al registrarse.
+
+### Clasificación de rutas y políticas de autorización
+
+| Método | Ruta | Acceso | Políticas aplicadas |
 |---|---|---|---|
-| POST | `/auth/register` | **Pública** | Registra un nuevo usuario con contraseña hasheada (bcrypt) |
-| POST | `/auth/login` | **Pública** | Autentica credenciales y emite un `accessToken` JWT |
-| GET | `/auth/me` | **Protegida** (`JwtAuthGuard`) | Retorna la identidad segura del usuario autenticado (`req.user`) |
-| POST | `/courses` | **Protegida** (`JwtAuthGuard`) | Crea un curso (requiere inicio de sesión) |
+| POST | `/auth/register` | **Pública** | Registro con rol por defecto `student` |
+| POST | `/auth/login` | **Pública** | Retorna `accessToken` firmado con `sub`, `email` y `role` |
+| GET | `/auth/me` | **Protegida** | `JwtAuthGuard` (retorna `req.user`) |
+| POST | `/courses` | **Protegida** | `JwtAuthGuard`, `RolesGuard` (`@Roles('teacher', 'admin')`). Asigna `createdByUserId` |
 | GET | `/courses` | **Pública** | Listar cursos paginados con filtros |
-| GET | `/courses/:id` | **Pública** | Consultar detalle de un curso |
-| PATCH / DELETE | `/courses/:id` | **Pública** | Actualizar / eliminar curso |
-| GET / POST | `/students` | **Pública** | Listar / crear estudiantes |
-| GET / PATCH / DELETE | `/students/:id` | **Pública** | Consultar / actualizar / eliminar estudiante |
-| PATCH | `/students/:id/status` | **Pública** | Alternar estado activo/inactivo |
-| POST / GET / DELETE | `/enrollments` | **Pública** | Gestión de matrículas |
+| GET | `/courses/:id` | **Pública** | Consultar detalle de curso |
+| PATCH | `/courses/:id` | **Protegida** | `JwtAuthGuard` + Regla de propiedad en servicio (Admin o docente propietario) |
+| DELETE | `/courses/:id` | **Protegida** | `JwtAuthGuard`, `RolesGuard` (`@Roles('admin')`) |
+| CRUD | `/students` | **Pública** | Gestión de estudiantes |
+| CRUD | `/enrollments` | **Pública** | Gestión de matrículas |
 
-> **Regla de acceso:** Las rutas protegidas requieren el encabezado `Authorization: Bearer <accessToken>`. Si el token falta, ha caducado o es inválido, la respuesta será `401 Unauthorized`. En esta etapa cualquier usuario autenticado puede acceder a las rutas protegidas (la diferenciación de roles como docente, administrador o estudiante se implementará en la Semana 10).
+### Matriz de evaluación para `PATCH /courses/:id`
+
+| Caso de prueba | Token enviado | Rol del usuario | ¿Es propietario? | Respuesta | Motivo |
+|---|---|---|---|---|---|
+| Sin token | Ninguno | N/A | N/A | **`401 Unauthorized`** | `JwtAuthGuard` rechaza la solicitud |
+| Estudiante | Token válido | `student` | No | **`403 Forbidden`** | El servicio comprueba que no es admin ni propietario |
+| Docente ajeno | Token válido | `teacher` | No (`createdByUserId !== actor.id`) | **`403 Forbidden`** | Solo el docente autor o un admin puede editar |
+| Docente propietario | Token válido | `teacher` | Sí (`createdByUserId === actor.id`) | **`200 OK`** | Coincide la propiedad del recurso |
+| Administrador | Token válido | `admin` | No relevante (`canManageAny = true`) | **`200 OK`** | El admin tiene privilegios globales de modificación |
+
+### Información mínima requerida en la identidad autenticada
+
+Para evaluar tanto el control de acceso por roles como la regla de propiedad de recursos, la identidad autenticada (`AuthenticatedUser` / `req.user`) debe incorporar como mínimo:
+
+1. **`id` (`number`):** Necesario para comprobar la propiedad del recurso frente a `course.createdByUserId === actor.id`.
+2. **`role` (`UserRole`):** Necesario para que `RolesGuard` y la regla de negocio verifiquen si el usuario es `admin`, `teacher` o `student`.
+3. **`email` (`string`):** Para identificación y auditoría del usuario en el sistema.
+
+## Seguridad por capas (CORS, Rate Limiting y HTTPS)
+
+### Matriz de capas de seguridad
+
+| Riesgo | Control principal | Control complementario |
+|---|---|---|
+| Cuerpo malformado | DTO y `ValidationPipe` | Límite de tamaño de petición |
+| Token robado en tránsito | HTTPS / TLS | Vencimiento corto de JWT (`15m`) |
+| Fuerza bruta de login | Limitación de tasa (`ThrottlerModule` / 5 intentos por min) | Mensaje genérico y hash bcrypt (cost factor 12) |
+| Acción sin permiso | Roles (`RolesGuard`) y propiedad en servicio | Registro de auditoría |
+| Sitio web no autorizado | CORS | JWT y autorización en el servidor |
+
+### CORS (Cross-Origin Resource Sharing)
+CORS restringe qué orígenes web en un navegador pueden leer las respuestas de la API (`app.enableCors(...)`).
+* **CORS no es autorización:** No previene que clientes fuera del navegador (como Postman, scripts o curl) envíen peticiones. Las rutas protegidas siempre exigen validación de JWT y roles.
+* Orígenes configurados en desarrollo: `http://localhost:5173` y `https://coursehub.example.edu`.
+
+### Limitación de tasa (Rate Limiting)
+Implementado con `@nestjs/throttler`:
+* **Límite global:** 20 solicitudes por minuto (`ttl: 60_000`, `limit: 20`).
+* **Límite estricto en login (`POST /auth/login`):** Máximo 5 intentos por minuto (`@Throttle({ default: { limit: 5, ttl: 60_000 } })`). Al 6.º intento consecutivo en la misma ventana, responde **`429 Too Many Requests`**.
+
+### Reglas de seguridad para producción
+1. **Producción requiere HTTPS/TLS:** El tráfico en tránsito debe estar cifrado para evitar la interceptación de tokens Bearer. La terminación TLS debe estar garantizada por el proxy inverso, balanceador o plataforma de despliegue.
+2. **Secretos exclusivos en el entorno:** Variables sensibles como `JWT_SECRET` y credenciales de base de datos viven **únicamente** en variables de entorno del servidor de producción, nunca hardcodeadas ni versionadas en el repositorio.
+
+

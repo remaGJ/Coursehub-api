@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy.js';
 import { JwtPayload } from '../types/jwt-payload.type.js';
+import { UserRole } from '../../users/user-role.enum.js';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
@@ -18,10 +19,16 @@ describe('JwtStrategy', () => {
   });
 
   it('validates and returns AuthenticatedUser from jwt payload', () => {
-    const payload: JwtPayload = { sub: 1, email: 'user@example.com' };
+    const payload: JwtPayload = { sub: 1, email: 'user@example.com', role: UserRole.ADMIN };
     const result = strategy.validate(payload);
 
-    expect(result).toEqual({ id: 1, email: 'user@example.com' });
+    expect(result).toEqual({ id: 1, email: 'user@example.com', role: UserRole.ADMIN });
+  });
+
+  it('defaults role to STUDENT if not present in payload', () => {
+    const payload: JwtPayload = { sub: 2, email: 'student@example.com' };
+    const result = strategy.validate(payload);
+
+    expect(result).toEqual({ id: 2, email: 'student@example.com', role: UserRole.STUDENT });
   });
 });
-

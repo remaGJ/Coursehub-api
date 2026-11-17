@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
+import { UserRole } from '../users/user-role.enum.js';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -52,6 +53,7 @@ describe('AuthService', () => {
         id: 1,
         email,
         passwordHash,
+        role: UserRole.STUDENT,
         createdAt: now,
       }));
 
@@ -69,6 +71,7 @@ describe('AuthService', () => {
       expect(result).toEqual({
         id: 1,
         email: 'user@example.com',
+        role: UserRole.STUDENT,
         createdAt: now,
       });
       expect((result as any).passwordHash).toBeUndefined();
@@ -84,6 +87,7 @@ describe('AuthService', () => {
       usersService.findByEmailWithPassword.mockResolvedValue({
         id: 1,
         email: 'user@example.com',
+        role: UserRole.STUDENT,
         passwordHash: hash,
         createdAt: now,
       });
@@ -100,12 +104,14 @@ describe('AuthService', () => {
       expect(jwtService.signAsync).toHaveBeenCalledWith({
         sub: 1,
         email: 'user@example.com',
+        role: UserRole.STUDENT,
       });
       expect(result).toEqual({
         accessToken: 'signed-jwt-token',
         user: {
           id: 1,
           email: 'user@example.com',
+          role: UserRole.STUDENT,
           createdAt: now,
         },
       });
@@ -129,6 +135,7 @@ describe('AuthService', () => {
       usersService.findByEmailWithPassword.mockResolvedValue({
         id: 1,
         email: 'user@example.com',
+        role: UserRole.STUDENT,
         passwordHash: hash,
         createdAt: new Date(),
       });

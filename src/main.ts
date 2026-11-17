@@ -9,6 +9,12 @@ async function bootstrap() {
         instrument: ObserveInstrument,
     });
 
+    app.enableCors({
+        origin: ['http://localhost:5173', 'https://coursehub.example.edu'],
+        methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    });
+
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,

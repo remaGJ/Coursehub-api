@@ -5,6 +5,7 @@ import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { UsersService } from '../users/users.service.js';
 import { JwtPayload } from './types/jwt-payload.type.js';
+import { UserRole } from '../users/user-role.enum.js';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,12 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.usersService.create(dto.email, passwordHash);
 
-    return { id: user.id, email: user.email, createdAt: user.createdAt };
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role ?? UserRole.STUDENT,
+      createdAt: user.createdAt,
+    };
   }
 
   private async validateCredentials(email: string, password: string) {
@@ -30,12 +36,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return { id: user.id, email: user.email, createdAt: user.createdAt };
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role ?? UserRole.STUDENT,
+      createdAt: user.createdAt,
+    };
   }
 
   async login(dto: LoginDto) {
     const user = await this.validateCredentials(dto.email, dto.password);
-    const payload: JwtPayload = { sub: user.id, email: user.email };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
 
     return {
       accessToken: await this.jwtService.signAsync(payload),
