@@ -64,4 +64,12 @@ describe('AuthController', () => {
     expect(authService.login).toHaveBeenCalledWith(dto);
     expect(result).toBe(expectedResponse);
   });
+
+  it('returns request.user from me()', () => {
+    const user = { id: 1, email: 'user@example.com' };
+    const req = { user } as any;
+
+    expect(controller.me(req)).toBe(user);
+  });
 });
+

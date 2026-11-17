@@ -253,3 +253,25 @@ GET /courses?level=beginner&page=2&limit=5&sortBy=title&order=ASC
   }
 }
 ```
+
+## Autenticación y control de acceso
+
+El sistema utiliza autenticación basada en JSON Web Tokens (JWT) mediante Passport (`passport-jwt`).
+
+### Clasificación de rutas
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/auth/register` | **Pública** | Registra un nuevo usuario con contraseña hasheada (bcrypt) |
+| POST | `/auth/login` | **Pública** | Autentica credenciales y emite un `accessToken` JWT |
+| GET | `/auth/me` | **Protegida** (`JwtAuthGuard`) | Retorna la identidad segura del usuario autenticado (`req.user`) |
+| POST | `/courses` | **Protegida** (`JwtAuthGuard`) | Crea un curso (requiere inicio de sesión) |
+| GET | `/courses` | **Pública** | Listar cursos paginados con filtros |
+| GET | `/courses/:id` | **Pública** | Consultar detalle de un curso |
+| PATCH / DELETE | `/courses/:id` | **Pública** | Actualizar / eliminar curso |
+| GET / POST | `/students` | **Pública** | Listar / crear estudiantes |
+| GET / PATCH / DELETE | `/students/:id` | **Pública** | Consultar / actualizar / eliminar estudiante |
+| PATCH | `/students/:id/status` | **Pública** | Alternar estado activo/inactivo |
+| POST / GET / DELETE | `/enrollments` | **Pública** | Gestión de matrículas |
+
+> **Regla de acceso:** Las rutas protegidas requieren el encabezado `Authorization: Bearer <accessToken>`. Si el token falta, ha caducado o es inválido, la respuesta será `401 Unauthorized`. En esta etapa cualquier usuario autenticado puede acceder a las rutas protegidas (la diferenciación de roles como docente, administrador o estudiante se implementará en la Semana 10).
