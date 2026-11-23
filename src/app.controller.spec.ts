@@ -19,5 +19,11 @@ describe('AppController', () => {
     it('should return the welcome message', () => {
       expect(appController.getHello()).toBe('Coursehub API esta en linea chavalon :D');
     });
+
+    it('should throw an unexpected error for practice on /practice/error-500', () => {
+      expect(() => appController.triggerUnexpectedError()).toThrow(
+        'Fallo crítico interno en base de datos: Error de conexión SQL',
+      );
+    });
   });
 });

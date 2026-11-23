@@ -9,4 +9,9 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('practice/error-500')
+  triggerUnexpectedError(): never {
+    throw new Error('Fallo crítico interno en base de datos: Error de conexión SQL');
+  }
 }

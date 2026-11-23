@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { createObserveModule } from '@nestjs/observe';
@@ -15,6 +15,7 @@ import { environmentValidationSchema } from './config/environment.validation.js'
 import { createTypeOrmOptions } from './config/typeorm-options.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -56,4 +57,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}
