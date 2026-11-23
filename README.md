@@ -11,6 +11,48 @@ npm run start:dev   # http://localhost:3000
 npm test            # pruebas unitarias
 ```
 
+## Pruebas automatizadas (Testing)
+
+El proyecto utiliza **Vitest** como ejecutor de pruebas rápido e integrado con TypeScript y ESM.
+
+### Comandos de ejecución
+
+```bash
+# Ejecutar todo el conjunto de pruebas unitarias
+npm test
+
+# Ejecutar únicamente las pruebas del caso de uso de cursos
+npm test -- update-course
+
+# Ejecutar pruebas en modo interactivo/observador (watch)
+npm run test:watch
+
+# Generar reporte de cobertura de código
+npm run test:cov
+```
+
+### Estructura de pruebas unitarias (Patrón Arrange - Act - Assert)
+
+Las pruebas unitarias de casos de uso (como `UpdateCourseUseCase`) desacoplan la regla de negocio de la infraestructura mediante repositorios simulados (*mock repository*) inyectados con `COURSE_REPOSITORY`. Esto permite verificar reglas sin necesidad de una base de datos real ni peticiones HTTP:
+
+1. **Arrange (Preparar):** Se configura el estado previo, datos de entrada y respuestas de los mocks (`findById`, `save`).
+2. **Act (Ejecutar):** Se invoca el método `execute` del caso de uso.
+3. **Assert (Verificar):** Se comprueba el resultado retornado, la excepción esperada (`NotFoundException`, `ForbiddenException`) y que las interacciones con el repositorio (`save`) solo ocurran cuando la regla lo autoriza.
+
+#### Escenarios protegidos en `UpdateCourseUseCase`:
+- **Caso exitoso:** Un docente dueño del curso (`createdByUserId === actor.id`) puede modificarlo y los cambios se guardan.
+- **Recurso inexistente (404):** Si el curso no existe, lanza `NotFoundException` y no llama a `save`.
+- **Rechazo por regla (403):** Si otro docente intenta modificar un curso ajeno, lanza `ForbiddenException` y se garantiza que el repositorio no persiste ningún cambio.
+- **Administrador:** Un usuario con rol `ADMIN` puede modificar cualquier curso independientemente del creador.
+
+### Pruebas de controladores con casos de uso simulados
+
+En las pruebas de controladores (por ejemplo, `CoursesController`), no se revalida la lógica de negocio interna, sino la correcta **delegación** de los parámetros HTTP hacia el caso de uso y la **propagación de excepciones**:
+
+- **Delegación precisa:** Se comprueba que el controlador preserve el `id`, el DTO de entrada y entregue la identidad del usuario autenticado (`req.user`) sin mutar datos.
+- **Propagación de errores:** Si el caso de uso lanza un error (como `ForbiddenException`), el controlador debe dejarlo propagar para que los filtros de excepción globales lo capturen; no debe atraparlo ni transformarlo en un falso `200 OK`.
+- **Cobertura de ramas:** El análisis con `npm run test:cov` permite identificar métodos o bifurcaciones opcionales (como `req?.user` no definido) para asegurar que todas las ramas críticas cuenten con aserciones significativas.
+
 ## Configuración del entorno
 
 `ConfigModule` valida las variables antes de inicializar la conexión a PostgreSQL.

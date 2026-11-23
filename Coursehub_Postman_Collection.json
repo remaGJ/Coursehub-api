@@ -1,0 +1,448 @@
+﻿{
+	"info": {
+		"_postman_id": "c1f7a8b9-52d3-4e4b-97e1-8893b1d03f67",
+		"name": "Coursehub API - Capturas de Evaluación",
+		"description": "Colección lista para importar en Postman y tomar únicamente las capturas solicitadas en la rúbrica.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Middleware de registro sin secretos",
+			"item": [
+				{
+					"name": "[Captura 2] POST /auth/login (Login Docente A)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"const token = res.accessToken || res.access_token;",
+									"if (token) {",
+									"    pm.collectionVariables.set('token_docente_a', token);",
+									"    console.log('Token Docente A guardado automáticamente:', token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{docente_a_email}}\",\n  \"password\": \"{{docente_a_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Captura 2 del Punto 1:\nEnvía login con email y password. En la consola de Nest se verá el log sin contraseñas ni tokens (Captura 3)."
+					},
+					"response": []
+				}
+			],
+			"description": "Peticiones para el Punto 1: Middleware de registro"
+		},
+		{
+			"name": "2. Errores consistentes, sin trazas",
+			"item": [
+				{
+					"name": "[Captura 2] GET /courses/99999 (Error 404 Not Found)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/99999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"courses",
+								"99999"
+							]
+						},
+						"description": "Captura 2 del Punto 2:\nDebe devolver 404 con JSON limpio sin trazas ni stack."
+					},
+					"response": []
+				},
+				{
+					"name": "[Captura 3] POST /courses - Body Inválido (Error 400 Bad Request)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_docente_a}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"level\": \"intermediate\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"courses"
+							]
+						},
+						"description": "Captura 3 del Punto 2:\nEnviamos body sin 'title'. Debe devolver 400 Bad Request con JSON consistente y sin stack trace."
+					},
+					"response": []
+				}
+			],
+			"description": "Peticiones para el Punto 2: Errores limpios y consistentes"
+		},
+		{
+			"name": "5. Autorización de propiedad (Paso a Paso)",
+			"item": [
+				{
+					"name": "[Paso 1] POST /auth/login (Docente A - Dueño)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"const token = res.accessToken || res.access_token;",
+									"if (token) {",
+									"    pm.collectionVariables.set('token_docente_a', token);",
+									"    console.log('Token Docente A actualizado:', token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{docente_a_email}}\",\n  \"password\": \"{{docente_a_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Paso 1 de la prueba de propiedad:\nInicia sesión como Docente A y guarda su token automáticamente."
+					},
+					"response": []
+				},
+				{
+					"name": "[Paso 2] POST /auth/login (Docente B - No Dueño)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"const token = res.accessToken || res.access_token;",
+									"if (token) {",
+									"    pm.collectionVariables.set('token_docente_b', token);",
+									"    console.log('Token Docente B actualizado:', token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{docente_b_email}}\",\n  \"password\": \"{{docente_b_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Paso 2 de la prueba de propiedad:\nInicia sesión como Docente B y guarda su token automáticamente."
+					},
+					"response": []
+				},
+				{
+					"name": "[Paso 3] POST /courses (Crear Curso con Docente A)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"if (res && res.id) {",
+									"    pm.collectionVariables.set('course_id', res.id);",
+									"    console.log('Curso creado con ID:', res.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_docente_a}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Curso de Arquitectura Limpia\",\n  \"level\": \"intermediate\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"courses"
+							]
+						},
+						"description": "Paso 3 de la prueba de propiedad:\nCrea un curso autenticado como Docente A y guarda su ID en la variable {{course_id}}."
+					},
+					"response": []
+				},
+				{
+					"name": "[Captura 2] PATCH /courses/:id (Docente A - 200 OK Dueño)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_docente_a}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Nuevo título actualizado por Docente A\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{course_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"courses",
+								"{{course_id}}"
+							]
+						},
+						"description": "Captura 2 del Punto 5:\nEl Docente A edita su propio curso con éxito (Status 200 OK)."
+					},
+					"response": []
+				},
+				{
+					"name": "[Captura 3] PATCH /courses/:id (Docente B - 403 Forbidden)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_docente_b}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Intento de modificación por Docente B\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{course_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"courses",
+								"{{course_id}}"
+							]
+						},
+						"description": "Captura 3 del Punto 5:\nEl Docente B intenta editar el curso del Docente A y el servidor responde 403 Forbidden."
+					},
+					"response": []
+				}
+			],
+			"description": "Peticiones para el Punto 5: Comprobación de que solo el dueño puede editar su recurso"
+		},
+		{
+			"name": "[Opcional] Registro de Cuentas",
+			"item": [
+				{
+					"name": "Registrar Docente A",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{docente_a_email}}\",\n  \"password\": \"{{docente_a_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Úsalo solo si aún no has registrado al Docente A en tu base de datos."
+					},
+					"response": []
+				},
+				{
+					"name": "Registrar Docente B",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{docente_b_email}}\",\n  \"password\": \"{{docente_b_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Úsalo solo si aún no has registrado al Docente B en tu base de datos."
+					},
+					"response": []
+				}
+			],
+			"description": "Carpeta opcional por si necesitas registrar los usuarios primero"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "docente_a_email",
+			"value": "docenteA@example.com",
+			"type": "string"
+		},
+		{
+			"key": "docente_a_password",
+			"value": "Password123!",
+			"type": "string"
+		},
+		{
+			"key": "docente_b_email",
+			"value": "docenteB@example.com",
+			"type": "string"
+		},
+		{
+			"key": "docente_b_password",
+			"value": "Password123!",
+			"type": "string"
+		},
+		{
+			"key": "token_docente_a",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "token_docente_b",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "course_id",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

@@ -15,7 +15,7 @@ import { Course } from '../entities/course.entity.js';
 export class UpdateCourseUseCase {
   constructor(
     @Inject(COURSE_REPOSITORY) private readonly courses: CourseRepository,
-  ) {}
+  ) { }
 
   async execute(
     id: number,
