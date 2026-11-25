@@ -4,7 +4,7 @@ import { createTypeOrmOptions } from './typeorm-options.js';
 describe('createTypeOrmOptions', () => {
   it.each([
     { NODE_ENV: 'development', synchronize: true },
-    { NODE_ENV: 'test', synchronize: false },
+    { NODE_ENV: 'test', synchronize: true },
     { NODE_ENV: 'production', synchronize: false },
   ])(
     'sets synchronize=$synchronize for NODE_ENV=$NODE_ENV',

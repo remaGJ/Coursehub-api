@@ -15,6 +15,42 @@ npm test            # pruebas unitarias
 
 El proyecto utiliza **Vitest** como ejecutor de pruebas rápido e integrado con TypeScript y ESM.
 
+### Verificación local completa
+
+El repositorio usa `pnpm-lock.yaml`; instala dependencias y verifica el proyecto
+con los siguientes comandos:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run test
+pnpm run test:e2e
+pnpm run build
+```
+
+Las pruebas e2e requieren PostgreSQL local y una base **exclusiva** llamada
+`coursehub_e2e`. Créala con un usuario que pueda conectarse:
+
+```sql
+CREATE DATABASE coursehub_e2e;
+```
+
+En PowerShell, define la contraseña de ese usuario antes de ejecutar el e2e:
+
+```powershell
+$env:E2E_DATABASE_PASSWORD = "tu-contraseña-local"
+pnpm run test:e2e
+```
+
+Opcionalmente, define `E2E_DATABASE_HOST`, `E2E_DATABASE_PORT` y
+`E2E_DATABASE_USER` si PostgreSQL no usa `127.0.0.1:5432` y el usuario
+`postgres`. El conjunto selecciona únicamente `coursehub_e2e`, sincroniza allí
+el esquema y elimina el usuario de prueba antes y después de cada ejecución.
+No apunta a la base de desarrollo indicada por `.env`.
+
+El workflow de GitHub Actions instala con el lockfile, ejecuta lint, pruebas
+unitarias, e2e contra un servicio PostgreSQL temporal y construye el proyecto.
+
 ### Comandos de ejecución
 
 ```bash

@@ -7,15 +7,37 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: coursehub_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d coursehub_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
+
+      - name: Configure e2e database credentials
+        run: echo "E2E_DATABASE_PASSWORD=postgres" >> "$GITHUB_ENV"
 
       - name: Install dependencies (locked)
         run: pnpm install --frozen-lockfile
@@ -24,8 +46,10 @@ jobs:
         run: pnpm run lint
 
       - name: Run unit tests
-        # --runInBand ensures tests run sequentially, mirroring local execution
-        run: pnpm run test -- --runInBand
+        run: pnpm run test
+
+      - name: Run e2e tests
+        run: pnpm run test:e2e
 
       - name: Build project
         run: pnpm run build
